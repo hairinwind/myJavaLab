@@ -1,4 +1,11 @@
 *.class
+.metadata
+Servers
+RemoteSystemsTempFiles
+.settings
+.project
+.classpath
+target
 
 # Package Files #
 *.jar
