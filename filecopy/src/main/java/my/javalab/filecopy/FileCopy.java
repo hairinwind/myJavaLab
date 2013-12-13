@@ -94,8 +94,16 @@ public class FileCopy {
 			}
 			out.write(b);
 		}
-		in.close();
-		out.close();
+		try {
+			in.close();
+		} catch (Exception e) {
+			e.printStackTrace();
+		}
+		try {
+			out.close();
+		} catch (Exception e) {
+			e.printStackTrace();
+		}
 	}
 	
 	public static void copy2() throws IOException {
@@ -111,10 +119,26 @@ public class FileCopy {
 			}
 			bout.write(b);
 		}
-		bin.close();
-		bout.close();
-		in.close();
-		out.close();
+		try {
+			bin.close();
+		} catch (Exception e) {
+			e.printStackTrace();
+		}
+		try {
+			bout.close();
+		} catch (Exception e) {
+			e.printStackTrace();
+		}
+		try {
+			in.close();
+		} catch (Exception e) {
+			e.printStackTrace();
+		}
+		try {
+			out.close();
+		} catch (Exception e) {
+			e.printStackTrace();
+		}
 	}
 	
 	public static void copy3() throws IOException {
@@ -134,10 +158,26 @@ public class FileCopy {
                 outChannel.write(buf);
                 buf.clear();
         }
-        inChannel.close();
-        outChannel.close();
-		in.close();
-		out.close();
+        try {
+			inChannel.close();
+		} catch (Exception e) {
+			e.printStackTrace();
+		}
+        try {
+			outChannel.close();
+		} catch (Exception e) {
+			e.printStackTrace();
+		}
+		try {
+			in.close();
+		} catch (Exception e) {
+			e.printStackTrace();
+		}
+		try {
+			out.close();
+		} catch (Exception e) {
+			e.printStackTrace();
+		}
 	}
 	
 }
