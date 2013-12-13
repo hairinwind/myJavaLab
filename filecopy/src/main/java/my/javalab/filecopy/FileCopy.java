@@ -94,8 +94,16 @@ public class FileCopy {
 			}
 			out.write(b);
 		}
-		in.close();
-		out.close();
+		try {
+			in.close();
+		} catch (Exception e) {
+			e.printStackTrace();
+		}
+		try {
+			out.close();
+		} catch (Exception e) {
+			e.printStackTrace();
+		}
 	}
 	
 	public static void copy2() throws IOException {
