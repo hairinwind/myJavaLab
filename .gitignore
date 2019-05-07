@@ -2,6 +2,7 @@
 .metadata
 Servers
 RemoteSystemsTempFiles
+.recommenders
 .settings
 .project
 .classpath
