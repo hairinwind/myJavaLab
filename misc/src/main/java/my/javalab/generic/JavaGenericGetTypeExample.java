@@ -6,8 +6,6 @@ public class JavaGenericGetTypeExample<E> {
 	
 	private String genericType;
 	
-	
-
 	public String getGenericType() {
 		return genericType;
 	}
