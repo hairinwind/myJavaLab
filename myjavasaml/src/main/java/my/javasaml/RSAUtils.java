@@ -114,5 +114,10 @@ public class RSAUtils {
 		} catch (NoSuchAlgorithmException e) {
 			System.err.println(e.getMessage());
 		}
+		
+		//decrypt xml signature
+		String signatureValue = "XcNTYoxQCKXQKLzuMcU7bwhO7sb35IF5ZY6hN/WF5x7iLsc1WLK/CiONiOQMk7Lw8UZsO2N1rIOAjPCwU5UuctHZuHqtbJvWEe6QbbNHA5u7eM2fd4h3SrPfghLjMvw93x/qJU4/JADDIm2ILhJY6g7e4qcN2sVsXa6l2AddP5I=";
+		String decryptedString = RSAUtils.decrypt(signatureValue, privateKeyText);
+		System.out.println(decryptedString);
 	}
 }

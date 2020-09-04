@@ -10,11 +10,15 @@ import com.onelogin.saml2.util.Util;
 
 public class MySamlValiator {
 	
+	/**
+	 * @param args
+	 * @throws Exception
+	 */
 	public static void main(String[] args) throws Exception {
 		String xmlPath = "samlSignedByOneTool.xml";
-		Document document = MyJavaSaml.readDocument(xmlPath);
+		Document document = SamlUtils.readDocument(xmlPath);
 		
-		boolean validateResult = Util.validateSign(document, cert, fingerprint, Constants.RSA_SHA1, "//ds:Signature"); ///Response/ns2:Assertion/ds:Signature
+		boolean validateResult = Util.validateSign(document, cert, fingerprint, Constants.RSA_SHA1, "//ds:Signature"); 
 		System.out.println("validate result: " + validateResult);
 	}
 

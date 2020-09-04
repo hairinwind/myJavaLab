@@ -1,12 +1,19 @@
 package my.javasaml;
 
+import java.io.File;
+import java.io.IOException;
 import java.io.StringWriter;
+import java.security.MessageDigest;
+import java.security.NoSuchAlgorithmException;
 import java.security.PrivateKey;
 import java.security.cert.X509Certificate;
+import java.util.Base64;
 
 import javax.xml.parsers.DocumentBuilderFactory;
 import javax.xml.parsers.ParserConfigurationException;
+import javax.xml.transform.OutputKeys;
 import javax.xml.transform.Transformer;
+import javax.xml.transform.TransformerConfigurationException;
 import javax.xml.transform.TransformerException;
 import javax.xml.transform.TransformerFactory;
 import javax.xml.transform.TransformerFactoryConfigurationError;
@@ -14,6 +21,7 @@ import javax.xml.transform.dom.DOMSource;
 import javax.xml.transform.stream.StreamResult;
 import javax.xml.xpath.XPathExpressionException;
 
+import org.apache.commons.io.FileUtils;
 import org.apache.xml.security.c14n.CanonicalizationException;
 import org.apache.xml.security.c14n.Canonicalizer;
 import org.apache.xml.security.c14n.InvalidCanonicalizerException;
@@ -24,6 +32,7 @@ import org.w3c.dom.Document;
 import org.w3c.dom.Element;
 import org.w3c.dom.Node;
 import org.w3c.dom.NodeList;
+import org.xml.sax.SAXException;
 
 import com.onelogin.saml2.util.Constants;
 import com.onelogin.saml2.util.Util;
@@ -48,11 +57,8 @@ public class SamlUtils {
 		if (assertionNode == null) {
 			throw new RuntimeException("assertion node is not found by xpath //saml:Assertion");
 		}
-		System.out.println("assertion node: " + Util.convertDocumentToString(nodeToDocument(assertionNode)));
 		
 		Document signedDocument = addSign(assertionNode, privateKey, certificate, null);
-		
-		System.out.println("assertion node signed: " + Util.convertDocumentToString(signedDocument));
 		
 		Node signedAssertionNode = document.importNode(signedDocument.getDocumentElement(), true);
 		assertionNode.getParentNode().replaceChild(signedAssertionNode, assertionNode);
@@ -105,6 +111,10 @@ public class SamlUtils {
 		return doc;
 	}
 	
+	/**
+	 * This is the method copied from java-saml Util
+	 * changed argument and return type
+	 */
 	private static Document addSign(Document document, PrivateKey key, X509Certificate certificate, String signAlgorithm) throws XMLSecurityException, XPathExpressionException, TransformerFactoryConfigurationError, TransformerException {
 		org.apache.xml.security.Init.init();
 
@@ -176,17 +186,49 @@ public class SamlUtils {
 	
 	public static String convertNodeToString(Node node) throws TransformerFactoryConfigurationError, TransformerException {
 		StringWriter writer = new StringWriter();
-		Transformer transformer = TransformerFactory.newInstance().newTransformer();
+		Transformer transformer = getTransformer();
 		transformer.transform(new DOMSource(node), new StreamResult(writer));
 		String xml = writer.toString();
 		return xml;
 	}
 	
-	public static String canonicalize(Node xmlNode) throws InvalidCanonicalizerException, CanonicalizationException {
-		org.apache.xml.security.Init.init(); // 
-		Canonicalizer canon = Canonicalizer.getInstance(Canonicalizer.ALGO_ID_C14N_OMIT_COMMENTS); //Canonicalizer.ALGO_ID_C14N_OMIT_COMMENTS
-		byte canonXmlBytes[] = canon.canonicalizeSubtree(xmlNode);
+	private static Transformer getTransformer() throws TransformerConfigurationException, TransformerFactoryConfigurationError {
+		Transformer transformer = TransformerFactory.newInstance().newTransformer();
+        transformer.setOutputProperty(OutputKeys.OMIT_XML_DECLARATION, "yes");
+        transformer.setOutputProperty(OutputKeys.METHOD, "xml");
+        transformer.setOutputProperty(OutputKeys.ENCODING, "UTF-8");
+        return transformer;
+	}
+	
+	public static String canonicalize(Node xmlNode) throws InvalidCanonicalizerException, CanonicalizationException, ParserConfigurationException, IOException, SAXException, TransformerFactoryConfigurationError, TransformerException {
+		org.apache.xml.security.Init.init();
+		Canonicalizer canon = Canonicalizer.getInstance(Canonicalizer.ALGO_ID_C14N_EXCL_OMIT_COMMENTS);
+		byte canonXmlBytes[] = canon.canonicalize(convertNodeToString(xmlNode).getBytes());
 		String canonXmlString = new String(canonXmlBytes);
 		return canonXmlString;
+	}
+	
+	public static byte[] toSHA1(byte[] bytes) {
+		MessageDigest md = null;
+	    try {
+	        md = MessageDigest.getInstance("SHA-1");
+	    }
+	    catch(NoSuchAlgorithmException e) {
+	        e.printStackTrace();
+	    } 
+	    return Base64.getEncoder().encode(md.digest(bytes));
+	}
+	
+	/**
+	 * read Xml Document from classpath 
+	 * @param fileName
+	 * @return
+	 * @throws IOException
+	 */
+	public static Document readDocument(String fileName) throws IOException {
+		String xmlPath = MyJavaSaml.class.getClassLoader().getResource(fileName).getFile();
+		String samlXml = FileUtils.readFileToString(new File(xmlPath), "UTF-8");
+		Document document = Util.loadXML(samlXml);
+		return document;
 	}
 }

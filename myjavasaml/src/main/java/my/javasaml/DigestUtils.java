@@ -1,6 +1,5 @@
 package my.javasaml;
 
-import java.io.File;
 import java.io.IOException;
 import java.io.StringWriter;
 import java.nio.charset.StandardCharsets;
@@ -10,7 +9,6 @@ import java.security.NoSuchAlgorithmException;
 import javax.xml.parsers.ParserConfigurationException;
 import javax.xml.transform.OutputKeys;
 import javax.xml.transform.Transformer;
-import javax.xml.transform.TransformerConfigurationException;
 import javax.xml.transform.TransformerException;
 import javax.xml.transform.TransformerFactory;
 import javax.xml.transform.TransformerFactoryConfigurationError;
@@ -18,7 +16,6 @@ import javax.xml.transform.dom.DOMSource;
 import javax.xml.transform.stream.StreamResult;
 
 import org.apache.commons.codec.binary.Base64;
-import org.apache.commons.io.FileUtils;
 import org.apache.xml.security.c14n.CanonicalizationException;
 import org.apache.xml.security.c14n.Canonicalizer;
 import org.apache.xml.security.c14n.InvalidCanonicalizerException;
@@ -26,14 +23,12 @@ import org.w3c.dom.Document;
 import org.w3c.dom.Node;
 import org.xml.sax.SAXException;
 
-import com.onelogin.saml2.util.Util;
-
 public class DigestUtils {
 
 	public static void main(String[] args) throws Exception {
 		String xmlPath = "saml_before_sign.xml";
-		Document document = MyJavaSaml.readDocument(xmlPath);
-		Node assertionNode = MyJavaSaml.findFirstNode(document, "//saml:Assertion");
+		Document document = SamlUtils.readDocument(xmlPath);
+		Node assertionNode = SamlUtils.findFirstNode(document, "//saml:Assertion");
 		
 		System.out.println("\nDigest\n" + createDigestValue(assertionNode));
 	}
