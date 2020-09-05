@@ -45,8 +45,6 @@ public class MyJavaSaml {
 		boolean validateResult = Util.validateSign(signedDocument, cert, null, Constants.RSA_SHA1, "//ds:Signature");
 		System.out.println(Util.convertDocumentToString(signedDocument));
 		System.out.println(validateResult);
-		
-
 	}
 
 	public static Document signAssertion(Document doc, PrivateKey privateKey, X509Certificate publicCertificate) throws Exception {
@@ -87,8 +85,10 @@ public class MyJavaSaml {
 		// Create an Array of Transform, add it one Transform which specify the
 		// Signature ENVELOPED method.
 		List<Transform> transformList = new ArrayList<Transform>(1);
-		transformList.add(fac.newTransform(Transform.ENVELOPED, (TransformParameterSpec) null));
-
+		transformList.add(fac.newTransform(Transform.ENVELOPED, (TransformParameterSpec) null));	
+		//add xml-exc-c14n transform
+		transformList.add(fac.newTransform("http://www.w3.org/2001/10/xml-exc-c14n#", (C14NMethodParameterSpec) null));
+		
 		// Create a Reference which contain: An URI to the Assertion ID, the Digest
 		// Method and the Transform List which specify the Signature ENVELOPED method.
 		Reference reference = fac.newReference("#" + assertionID, fac.newDigestMethod(DigestMethod.SHA1, null),

@@ -40,6 +40,9 @@ public class SamlUtilsTest {
 		boolean validateResult = Util.validateSign(signedDocument, cert, null, Constants.RSA_SHA1, "//ds:Signature");
 		
 		assertTrue(validateResult);
+		NodeList nodes = Util.query(document, "//ds:Signature");
+		assertEquals(1, nodes.getLength());
+		
 		Node signatureNode = SamlUtils.findFirstNode(signedDocument, "//ds:Signature");
 		assertNotNull(signatureNode);
 		assertEquals("ns2:Assertion", signatureNode.getParentNode().getNodeName());
