@@ -30,7 +30,8 @@ public class SamlUtilsTest {
 
 	@Test
 	public void testSignAssertion() throws Exception {
-		String xmlPath = "saml_before_sign.xml";
+//		String xmlPath = "saml_before_sign.xml";
+		String xmlPath = "onelogin_saml_sample.xml";
 		Document document = SamlUtils.readDocument(xmlPath);
 		String signedText = SamlUtils.signAssertion(document, privateKey, certificate);
 		
@@ -45,8 +46,8 @@ public class SamlUtilsTest {
 		
 		Node signatureNode = SamlUtils.findFirstNode(signedDocument, "//ds:Signature");
 		assertNotNull(signatureNode);
-		assertEquals("ns2:Assertion", signatureNode.getParentNode().getNodeName());
-		assertEquals("Response", signatureNode.getParentNode().getParentNode().getNodeName());
+		assertEquals("Assertion", signatureNode.getParentNode().getLocalName());
+		assertEquals("Response", signatureNode.getParentNode().getParentNode().getLocalName());
 	}
 
 	@Test

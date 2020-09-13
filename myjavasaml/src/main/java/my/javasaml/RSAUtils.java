@@ -76,6 +76,20 @@ public class RSAUtils {
 		cipher.init(Cipher.ENCRYPT_MODE, publicKey);
 		return cipher.doFinal(data.getBytes());
 	}
+	
+	public static byte[] encryptWithPrivateKey(String data, PrivateKey privateKey) throws BadPaddingException,
+			IllegalBlockSizeException, InvalidKeyException, NoSuchPaddingException, NoSuchAlgorithmException {
+		Cipher cipher = Cipher.getInstance("RSA/ECB/PKCS1Padding");
+		cipher.init(Cipher.ENCRYPT_MODE, privateKey);
+		return cipher.doFinal(data.getBytes());
+	}
+	
+	public static String decryptWithPublicKey(byte[] data, PublicKey publicKey) throws NoSuchPaddingException,
+			NoSuchAlgorithmException, InvalidKeyException, BadPaddingException, IllegalBlockSizeException {
+		Cipher cipher = Cipher.getInstance("RSA/ECB/PKCS1Padding");
+		cipher.init(Cipher.DECRYPT_MODE, publicKey);
+		return new String(cipher.doFinal(data));
+	}
 
 	public static String decrypt(byte[] data, PrivateKey privateKey) throws NoSuchPaddingException,
 			NoSuchAlgorithmException, InvalidKeyException, BadPaddingException, IllegalBlockSizeException {
