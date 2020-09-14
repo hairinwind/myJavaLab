@@ -4,13 +4,30 @@ import static my.javasaml.KeyConstants.cert;
 import static org.junit.Assert.assertEquals;
 import static org.junit.Assert.assertNotNull;
 import static org.junit.Assert.assertTrue;
+import static org.junit.Assert.fail;
 
+import java.io.IOException;
+import java.io.StringWriter;
 import java.security.PrivateKey;
 import java.security.cert.X509Certificate;
+
+import javax.xml.transform.Transformer;
+import javax.xml.transform.TransformerConfigurationException;
+import javax.xml.transform.TransformerException;
+import javax.xml.transform.TransformerFactory;
+import javax.xml.transform.TransformerFactoryConfigurationError;
+import javax.xml.transform.dom.DOMSource;
+import javax.xml.transform.stream.StreamResult;
+import javax.xml.xpath.XPath;
+import javax.xml.xpath.XPathConstants;
+import javax.xml.xpath.XPathExpression;
+import javax.xml.xpath.XPathExpressionException;
+import javax.xml.xpath.XPathFactory;
 
 import org.junit.Before;
 import org.junit.Test;
 import org.w3c.dom.Document;
+import org.w3c.dom.Element;
 import org.w3c.dom.Node;
 import org.w3c.dom.NodeList;
 
@@ -65,6 +82,33 @@ public class SamlUtilsTest {
 		Node signatureNode = SamlUtils.findFirstNode(signedDocument, "//ds:Signature");
 		assertNotNull(signatureNode);
 		assertEquals("Response", signatureNode.getParentNode().getNodeName());
+	}
+	
+	@Test
+	public void testFindFirstNode() throws IOException, XPathExpressionException, TransformerFactoryConfigurationError, TransformerException {
+		String xmlPath = "onelogin_saml_sample2.xml";
+		Document document = SamlUtils.readDocument(xmlPath);
+		
+		Node assertionNode = SamlUtils.findFirstNode(document, "//saml:Assertion");
+		System.out.println(SamlUtils.convertNodeToString(assertionNode));
+		
+		XPathFactory xPathfactory = XPathFactory.newInstance();
+		XPath xpath = xPathfactory.newXPath();
+		XPathExpression exprAssertion = xpath.compile("//*[local-name()='Response']//*[local-name()='Assertion']");
+		Element assertionNodeByXpath = (Element) exprAssertion.evaluate(document, XPathConstants.NODE);
+		System.out.println("\n" + getNodeString(assertionNodeByXpath));
+		
+		fail("this shall be same with the original text in xml");
+	}
+	
+	public String getNodeString(Node node) throws TransformerFactoryConfigurationError, TransformerException {
+		StringWriter writer = new StringWriter();
+		Transformer transformer = TransformerFactory.newInstance().newTransformer();
+		
+		DOMSource xmlSource = new DOMSource(node);
+		transformer.transform(xmlSource, new StreamResult(writer));
+		String xml = writer.toString();
+		return xml;
 	}
 
 }

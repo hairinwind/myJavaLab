@@ -6,6 +6,8 @@ import static org.junit.Assert.assertTrue;
 
 import java.util.Base64;
 
+import javax.xml.xpath.XPathExpressionException;
+
 import org.junit.Test;
 import org.w3c.dom.Document;
 import org.w3c.dom.Node;
@@ -35,25 +37,53 @@ public class MyJavaSamlTest {
 		
 		Document signedDocument = MyJavaSaml.signAssertion(document, KeyConstants.privateKey, KeyConstants.cert);
 		assertTrue(Util.validateSign(signedDocument, cert, null, Constants.RSA_SHA1, "//ds:Signature"));
-//		System.out.println("myJava signed doc:\n" + Util.convertDocumentToString(signedDocument, true));
-		
-		Node signatureNode = SamlUtils.findFirstNode(signedDocument, "//ds:SignatureValue");
-		String myJavaSignature = signatureNode.getTextContent();
-//		System.out.println(myJavaSignature);
-		Node myJavaDigest = SamlUtils.findFirstNode(signedDocument, "//ds:DigestValue");
-		System.out.println(myJavaDigest.getTextContent());
 		
 		Document document1 = SamlUtils.readDocument(fileName);
 		String signedText = SamlUtils.signAssertion(document1, KeyConstants.privateKey, KeyConstants.cert);
-		assertTrue(Util.validateSign(Util.loadXML(signedText), cert, null, Constants.RSA_SHA1, "//ds:Signature"));
-//		System.out.println("signed the SAML assertion:" + signedText);
-		Node signatureNode2 = SamlUtils.findFirstNode(Util.loadXML(signedText), "//ds:SignatureValue");
-		String javaSamlSignature = signatureNode2.getTextContent();
-//		System.out.println("\n" + signatureNode2.getTextContent());
-		Node samlUtilsDigest = SamlUtils.findFirstNode(Util.loadXML(signedText), "//ds:DigestValue");
-		System.out.println(samlUtilsDigest.getTextContent());
+		Document signedDocument1 = Util.loadXML(signedText);
+//		assertTrue(Util.validateSign(signedDocument1, cert, null, Constants.RSA_SHA1, "//ds:Signature"));
 		
-		assertEquals(javaSamlSignature, myJavaSignature);
+		String fileName2= "onelogin_saml_sample2.xml";
+		Document document2 = SamlUtils.readDocument(fileName2);
+		Document signedDocument2 = MyJavaSaml.signAssertion(document2, KeyConstants.privateKey, KeyConstants.cert);
+		assertTrue(Util.validateSign(signedDocument2, cert, null, Constants.RSA_SHA1, "//ds:Signature"));
+		
+		printDigestAndSignature(signedDocument, signedDocument1, signedDocument2);
+		
+		printSignedDocument(signedDocument, signedDocument1);
+		
+//		assertEquals(javaSamlSignature, myJavaSignature);
+	}
+
+	private void printSignedDocument(Document... signedDocuments) {
+		// TODO Auto-generated method stub
+		for (Document doc : signedDocuments) {
+			System.out.println(Util.convertDocumentToString(doc));
+			System.out.println("=====");
+		}
+	}
+
+	private void printDigestAndSignature(Document... signedDocuments) throws XPathExpressionException {
+		System.out.println("=== Digest === ");
+		for (Document doc : signedDocuments) {
+			System.out.println(extractDigestValue(doc));
+		}
+		
+		System.out.println("=== Signature === ");
+		for (Document doc : signedDocuments) {
+			System.out.println(extractSignature(doc));
+		}
+	}
+
+	private String extractDigestValue(Document signedDocument) throws XPathExpressionException {
+		Node digest = SamlUtils.findFirstNode(signedDocument, "//*[local-name()='DigestValue']"); //ds:DigestValue
+		return digest.getTextContent();
+	}
+	
+	private String extractSignature(Document signedDocument) throws XPathExpressionException {
+		Node signatureNode = SamlUtils.findFirstNode(signedDocument, "//*[local-name()='SignatureValue']");  //ds:SignatureValue
+		String signature = signatureNode.getTextContent();
+		return signature;
 	}
 	
 	@Test
