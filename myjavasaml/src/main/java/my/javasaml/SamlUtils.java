@@ -3,12 +3,15 @@ package my.javasaml;
 import java.io.File;
 import java.io.IOException;
 import java.io.StringWriter;
+import java.security.Key;
 import java.security.MessageDigest;
 import java.security.NoSuchAlgorithmException;
 import java.security.PrivateKey;
 import java.security.cert.X509Certificate;
 import java.util.Base64;
 
+import javax.crypto.KeyGenerator;
+import javax.crypto.SecretKey;
 import javax.xml.parsers.DocumentBuilderFactory;
 import javax.xml.parsers.ParserConfigurationException;
 import javax.xml.transform.OutputKeys;
@@ -22,12 +25,20 @@ import javax.xml.transform.stream.StreamResult;
 import javax.xml.xpath.XPathExpressionException;
 
 import org.apache.commons.io.FileUtils;
+import org.apache.ws.security.WSSecurityException;
+import org.apache.ws.security.processor.EncryptedKeyProcessor;
+import org.apache.ws.security.util.WSSecurityUtil;
+import org.apache.wss4j.common.WSS4JConstants;
 import org.apache.xml.security.c14n.CanonicalizationException;
 import org.apache.xml.security.c14n.Canonicalizer;
 import org.apache.xml.security.c14n.InvalidCanonicalizerException;
+import org.apache.xml.security.encryption.EncryptedData;
+import org.apache.xml.security.encryption.EncryptedKey;
+import org.apache.xml.security.encryption.XMLCipher;
 import org.apache.xml.security.exceptions.XMLSecurityException;
 import org.apache.xml.security.signature.XMLSignature;
 import org.apache.xml.security.transforms.Transforms;
+import org.apache.xml.security.utils.EncryptionConstants;
 import org.w3c.dom.Document;
 import org.w3c.dom.Element;
 import org.w3c.dom.Node;
@@ -52,18 +63,23 @@ public class SamlUtils {
 	 * @throws TransformerException
 	 */
 	public static String signAssertion(Document document, PrivateKey privateKey, X509Certificate certificate) throws XPathExpressionException, ParserConfigurationException, XMLSecurityException, TransformerFactoryConfigurationError, TransformerException {
+		document = signAssertionDoc(document, privateKey, certificate);
+		return Util.convertDocumentToString(document, true);
+	}
+
+	public static Document signAssertionDoc(Document document, PrivateKey privateKey, X509Certificate certificate) throws XPathExpressionException, ParserConfigurationException, XMLSecurityException, TransformerFactoryConfigurationError, TransformerException {
 		String assertionXpath = "//saml:Assertion";
 		Node assertionNode = findFirstNode(document, assertionXpath);
 		if (assertionNode == null) {
 			throw new RuntimeException("assertion node is not found by xpath //saml:Assertion");
 		}
-		
+
 		Document signedDocument = addSign(assertionNode, privateKey, certificate, null);
-		
+
 		Node signedAssertionNode = document.importNode(signedDocument.getDocumentElement(), true);
 		assertionNode.getParentNode().replaceChild(signedAssertionNode, assertionNode);
-		
-		return Util.convertDocumentToString(document, true);
+
+		return document;
 	}
 	
 	/**
@@ -230,5 +246,76 @@ public class SamlUtils {
 		String samlXml = FileUtils.readFileToString(new File(xmlPath), "UTF-8");
 		Document document = Util.loadXML(samlXml);
 		return document;
+	}
+
+	/**
+	 * this is the sample code to use apache xml security to encrypt the document or element
+	 * @param inputDocument
+	 * @param xpath
+	 * @param publicKey
+	 * @return
+	 * @throws Exception
+	 */
+	public static Document encryptDocument(Document inputDocument, String xpath, Key publicKey) throws Exception {
+		// generate a key to encrypt document
+		KeyGenerator keygen = KeyGenerator.getInstance("AES");
+		keygen.init(128);
+		SecretKey secretKey = keygen.generateKey();
+
+		//Encrypt the key
+		XMLCipher kekCipher = XMLCipher.getInstance(XMLCipher.RSA_OAEP);
+		kekCipher.init(XMLCipher.WRAP_MODE, publicKey); // use the public key to wrap the secret key
+		EncryptedKey encryptedKey = kekCipher.encryptKey(inputDocument, secretKey);
+
+		//encrypt the document
+		XMLCipher cipher = XMLCipher.getInstance(XMLCipher.AES_128);
+		cipher.init(XMLCipher.ENCRYPT_MODE, secretKey);
+
+		// Create a KeyInfo for the EncryptedData
+		EncryptedData encryptedData = cipher.getEncryptedData();
+		org.apache.xml.security.keys.KeyInfo keyInfo = new org.apache.xml.security.keys.KeyInfo(inputDocument);
+		keyInfo.add(encryptedKey);
+		encryptedData.setKeyInfo(keyInfo);
+
+		Node assertionNode = findFirstNode(inputDocument, xpath);
+		Document result = cipher.doFinal(inputDocument, (Element) assertionNode);
+		return result;
+	}
+
+	/**
+	 * decrypt the encrypted document
+	 * the decrypted data replaces the same section in inputDocument
+	 * @param inputDocument
+	 * @param encryptedNode
+	 * @param privateKey
+	 * @return
+	 * @throws Exception
+	 */
+	public static Document decryptDocument(Document inputDocument, Element encryptedNode, PrivateKey privateKey) throws Exception {
+		SecretKey secretKey = getSecretKeyFromEncryption(encryptedNode, privateKey);
+
+		XMLCipher cipher = XMLCipher.getInstance();
+		cipher.init(XMLCipher.DECRYPT_MODE, secretKey);
+		Document doc = cipher.doFinal(inputDocument, encryptedNode);
+		return doc;
+	}
+
+	/**
+	 * Get the secretKey from the encryption
+	 * decrypt the KeyInfo by the privateKey
+	 * @param encryptedNode
+	 * @param privateKey
+	 * @return
+	 * @throws WSSecurityException
+	 */
+	private static SecretKey getSecretKeyFromEncryption(Element encryptedNode, PrivateKey privateKey) throws WSSecurityException {
+		Node kiElem = encryptedNode.getElementsByTagNameNS(WSS4JConstants.SIG_NS, "KeyInfo").item(0);
+		Node encrKeyElem = ((Element) kiElem).getElementsByTagNameNS(WSS4JConstants.ENC_NS, EncryptionConstants._TAG_ENCRYPTEDKEY)
+				.item(0);
+		EncryptedKeyProcessor encrKeyProcessor = new EncryptedKeyProcessor();
+		encrKeyProcessor.handleEncryptedKey((Element) encrKeyElem, privateKey);
+		SecretKey secretKey = WSSecurityUtil.prepareSecretKey(EncryptionConstants.ALGO_ID_BLOCKCIPHER_AES128,
+				encrKeyProcessor.getDecryptedBytes());
+		return secretKey;
 	}
 }

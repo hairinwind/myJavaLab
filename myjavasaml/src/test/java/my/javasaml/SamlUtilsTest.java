@@ -1,10 +1,8 @@
 package my.javasaml;
 
 import static my.javasaml.KeyConstants.cert;
-import static org.junit.Assert.assertEquals;
-import static org.junit.Assert.assertNotNull;
-import static org.junit.Assert.assertTrue;
-import static org.junit.Assert.fail;
+import static my.javasaml.KeyConstants.publicKey;
+import static org.junit.Assert.*;
 
 import java.io.IOException;
 import java.io.StringWriter;
@@ -12,7 +10,6 @@ import java.security.PrivateKey;
 import java.security.cert.X509Certificate;
 
 import javax.xml.transform.Transformer;
-import javax.xml.transform.TransformerConfigurationException;
 import javax.xml.transform.TransformerException;
 import javax.xml.transform.TransformerFactory;
 import javax.xml.transform.TransformerFactoryConfigurationError;
@@ -24,6 +21,7 @@ import javax.xml.xpath.XPathExpression;
 import javax.xml.xpath.XPathExpressionException;
 import javax.xml.xpath.XPathFactory;
 
+import org.apache.xml.security.encryption.EncryptedData;
 import org.junit.Before;
 import org.junit.Test;
 import org.w3c.dom.Document;
@@ -52,7 +50,7 @@ public class SamlUtilsTest {
 		Document document = SamlUtils.readDocument(xmlPath);
 		String signedText = SamlUtils.signAssertion(document, privateKey, certificate);
 		
-		System.out.println("signed the SAML assertion:" + signedText);
+		System.out.println("signed the SAML assertion:\n" + signedText);
 		
 		Document signedDocument = Util.loadXML(signedText);
 		boolean validateResult = Util.validateSign(signedDocument, cert, null, Constants.RSA_SHA1, "//ds:Signature");
@@ -73,7 +71,7 @@ public class SamlUtilsTest {
 		Document document = SamlUtils.readDocument(xmlPath);
 		String signedText = SamlUtils.sign(document, privateKey, certificate);
 		
-		System.out.println("signed the whole SAML:" + signedText);
+		System.out.println("signed the whole SAML:\n" + signedText);
 		
 		Document signedDocument = Util.loadXML(signedText);
 		boolean validateResult = Util.validateSign(signedDocument, cert, null, Constants.RSA_SHA1, "//ds:Signature");
@@ -111,4 +109,34 @@ public class SamlUtilsTest {
 		return xml;
 	}
 
+	@Test
+	public void encryptDocument() throws Exception {
+		// sign the assertion
+		String xmlPath = "onelogin_saml_sample.xml";
+		Document document = SamlUtils.readDocument(xmlPath);
+		String signedText = SamlUtils.signAssertion(document, privateKey, certificate);
+		Document signedDocument = Util.loadXML(signedText);
+		System.out.println("signed assertion:\n" + signedText);
+		boolean validateResult = Util.validateSign(signedDocument, cert, null, Constants.RSA_SHA1, "//ds:Signature");
+		assertTrue(validateResult);
+
+		// take out the assertion to do the encryption
+		String xpath = "//*[local-name()='Response']//*[local-name()='Assertion']";
+		Document encryptedDocument = SamlUtils.encryptDocument(signedDocument, xpath, publicKey);
+		String text = Util.convertDocumentToString(encryptedDocument);
+		System.out.println(text);
+		assertTrue(text.contains("xenc:EncryptedData"));
+
+		//decrypt the encrypted SAML, I shall still get the SAML which assertion is signed
+		String encyptXpath = "//*[local-name()='Response']//*[local-name()='EncryptedData']";
+		Element encryptedNode = (Element) SamlUtils.findFirstNode(encryptedDocument, encyptXpath);
+		Document decryptDoc = SamlUtils.decryptDocument(encryptedDocument, encryptedNode, privateKey);
+		String text1 = Util.convertDocumentToString(decryptDoc);
+		System.out.println(text1);
+
+		assertEquals(signedText, text1);
+
+		boolean validateResult1 = Util.validateSign(Util.loadXML(text1), cert, null, Constants.RSA_SHA1, "//ds:Signature");
+		assertTrue(validateResult1);
+	}
 }
