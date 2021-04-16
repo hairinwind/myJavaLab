@@ -94,9 +94,11 @@ public class SamlUtilsTest {
 		XPath xpath = xPathfactory.newXPath();
 		XPathExpression exprAssertion = xpath.compile("//*[local-name()='Response']//*[local-name()='Assertion']");
 		Element assertionNodeByXpath = (Element) exprAssertion.evaluate(document, XPathConstants.NODE);
-		System.out.println("\n" + getNodeString(assertionNodeByXpath));
+//		System.out.println("\n" + getNodeString(assertionNodeByXpath));
+		String nodeText = SamlUtils.convertNodeToString((Node)assertionNodeByXpath);
+		System.out.println("assertion Node Text: \n" + nodeText);
 		
-		fail("this shall be same with the original text in xml");
+		assertEquals(nodeText, SamlUtils.convertNodeToString(assertionNode));
 	}
 	
 	public String getNodeString(Node node) throws TransformerFactoryConfigurationError, TransformerException {
