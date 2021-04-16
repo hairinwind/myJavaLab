@@ -12,3 +12,8 @@ target
 *.jar
 *.war
 *.ear
+
+# intellij
+.idea
+*.iml
+${project.build.directory}/
